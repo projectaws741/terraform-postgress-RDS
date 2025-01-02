@@ -1,0 +1,44 @@
+-- Connect to the newly created or existing mqconfig database
+\c mqconfig;
+
+-- Start a transaction to ensure atomicity
+BEGIN;
+
+-- Create the queues table if it doesn't exist
+CREATE TABLE IF NOT EXISTS queues (
+    queue_id SERIAL PRIMARY KEY,
+    queue_name VARCHAR(100) UNIQUE NOT NULL,
+    queue_type VARCHAR(50),
+    max_message_size INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the messages table if it doesn't exist
+CREATE TABLE IF NOT EXISTS messages (
+    message_id SERIAL PRIMARY KEY,
+    queue_id INT REFERENCES queues(queue_id) ON DELETE CASCADE,
+    message_content TEXT,
+    priority INT DEFAULT 0,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the users table if it doesn't exist
+CREATE TABLE IF NOT EXISTS users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create the system_settings table if it doesn't exist
+CREATE TABLE IF NOT EXISTS system_settings (
+    setting_id SERIAL PRIMARY KEY,
+    setting_name VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Commit the transaction
+COMMIT;
+
