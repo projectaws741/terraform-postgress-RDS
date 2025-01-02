@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://github.com/projectaws741/terraform-postgress-RDS.git' // Replace with your GitHub repo URL
+        SQL_DIR = '/var/lib/jenkins/workspace/PG-DB' // Directory where SQL files are located after cloning
+    }
+
+    stages {
+        stage('Clone SQL Scripts') {
+            steps {
+                // Clone the repository containing the SQL scripts
+                git branch: 'main', url: "${env.GIT_REPO}"
+            }
+        }
+
+        stage('Run SQL Scripts') {
+            environment {
+                // Fetch credentials from Jenkins
+                RDS_USERNAME = credentials('rds-username') // Jenkins credential ID
+                RDS_PASSWORD = credentials('rds-password')
+                RDS_ENDPOINT = credentials('rds-endpoint')
+            }
+            steps {
+                script {
+                    // Get list of .sql files in the cloned repo
+                    def sqlFiles = sh(script: "find ${SQL_DIR} -name '*.sql'", returnStdout: true).trim().split("\n")
+                    
+                    for (sqlFile in sqlFiles) {
+                        echo "Executing ${sqlFile}"
+                        sh """
+                        export PGPASSWORD=${RDS_PASSWORD}
+
+                        # Execute each SQL file
+                        psql -h ${RDS_ENDPOINT} -U ${RDS_USERNAME} -d postgres -f ${sqlFile}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline execution completed!'
+        }
+    }
+}
